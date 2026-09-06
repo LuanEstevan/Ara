@@ -56,6 +56,7 @@ export function SideMenu({ isOpen, onClose, user, onSignOut, onSignIn, onSignUp,
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [authWorking, setAuthWorking] = useState(false);
+  const passwordValid = authPassword.length >= 8 && /[A-Z]/.test(authPassword) && /[a-z]/.test(authPassword) && /[0-9]/.test(authPassword) && /[^A-Za-z0-9]/.test(authPassword);
   const [name, setName]           = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -380,7 +381,27 @@ export function SideMenu({ isOpen, onClose, user, onSignOut, onSignIn, onSignUp,
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                 <input style={iStyle} placeholder="Email" type="email" inputMode="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} />
-                <input style={iStyle} placeholder="Senha" type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} onKeyDown={async e => { if (e.key === "Enter") { setAuthWorking(true); const err = authView === "login" ? await onSignIn(authEmail, authPassword) : await onSignUp(authEmail, authPassword); setAuthError(err); setAuthWorking(false); if (!err) { setView("main"); onClose(); } } }} />
+                <input style={iStyle} placeholder="Senha" type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)} onKeyDown={async e => { if (e.key === "Enter" && (authView === "login" || passwordValid)) { setAuthWorking(true); const err = authView === "login" ? await onSignIn(authEmail, authPassword) : await onSignUp(authEmail, authPassword); setAuthError(err); setAuthWorking(false); if (!err) { setView("main"); onClose(); } } }} />
+
+                {authView === "register" && (
+                  <div style={{ background:C.card, borderRadius:12, padding:"12px 14px", display:"flex", flexDirection:"column", gap:6 }}>
+                    {[
+                      { ok: authPassword.length >= 8, label: "Mínimo de 8 caracteres" },
+                      { ok: /[A-Z]/.test(authPassword), label: "Uma letra maiúscula" },
+                      { ok: /[a-z]/.test(authPassword), label: "Uma letra minúscula" },
+                      { ok: /[0-9]/.test(authPassword), label: "Um número" },
+                      { ok: /[^A-Za-z0-9]/.test(authPassword), label: "Um símbolo (ex: !@#$)" },
+                    ].map((rule, i) => (
+                      <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <div style={{ width:16, height:16, borderRadius:"50%", background:rule.ok?C.green+"33":"transparent", border:"1.5px solid "+(rule.ok?C.green:C.border), display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                          {rule.ok && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </div>
+                        <span style={{ fontSize:12, color:rule.ok?C.text:C.sub }}>{rule.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {authError && (
                   <div style={{ fontSize:13, color:authError.includes("Verifique")?C.green:C.red, background:authError.includes("Verifique")?"#14532d33":"#7f1d1d33", borderRadius:10, padding:"10px 14px", borderLeft:"3px solid "+(authError.includes("Verifique")?C.green:C.red) }}>
                     {authError}
@@ -394,8 +415,8 @@ export function SideMenu({ isOpen, onClose, user, onSignOut, onSignIn, onSignUp,
                     setAuthWorking(false);
                     if (!err || err.includes("Verifique")) { setView("main"); if (!err) onClose(); }
                   }}
-                  disabled={authWorking}
-                  style={{ ...btn("linear-gradient(135deg,#7C3AED,#2563EB)"), opacity:authWorking?0.7:1 }}
+                  disabled={authWorking || (authView === "register" && !passwordValid)}
+                  style={{ ...btn("linear-gradient(135deg,#7C3AED,#2563EB)"), opacity:(authWorking || (authView === "register" && !passwordValid))?0.5:1 }}
                 >
                   {authWorking ? "Aguarde..." : authView === "login" ? "Entrar" : "Criar conta"}
                 </button>
